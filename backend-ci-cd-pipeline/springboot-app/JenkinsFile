@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    environment {
+        // GitHub
+        GIT_USER_NAME     = "dipeshkumar47"
+        GIT_REPO_NAME     = "INT331_CI-CD_Project"
+        GIT_CREDENTIAL    = "github-token"
+
+        // Docker Hub
+        DOCKER_IMAGE      = "dipeshkumar47/springboot-app:${BUILD_NUMBER}"
+        DOCKER_CREDENTIAL = "docker-cred"
+
+        // SonarQube
+        SONARQUBE_ENV     = "sonarqube"
+        SONARQUBE_URL     = "http://localhost:9000"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: "https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git",
+                    credentialsId: "${GIT_CREDENTIAL}"
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                // Inject the SonarQube token stored as secret text
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    withSonarQubeEnv("${SONARQUBE_ENV}") {
+                        sh """
+                            mvn clean verify sonar:sonar \
+                            -Dsonar.projectKey=springboot-app \
+                            -Dsonar.projectName=springboot-app \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.login=$SONAR_AUTH_TOKEN
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Build Maven Artifact') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE} ."
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIAL}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh "docker rm -f springboot-app || true"
+                sh "docker pull ${DOCKER_IMAGE}"
+                sh "docker run -d -p 8080:8080 --name springboot-app ${DOCKER_IMAGE}"
+            }
+        }
+    }
+}
+
