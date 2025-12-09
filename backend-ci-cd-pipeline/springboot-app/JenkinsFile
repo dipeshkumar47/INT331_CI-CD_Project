@@ -72,7 +72,7 @@ pipeline {
             steps {
                 sh "docker rm -f springboot-app || true"
                 sh "docker pull ${DOCKER_IMAGE}"
-                sh "docker run -d -p 8080:8080 --name springboot-app ${DOCKER_IMAGE}"
+                sh "docker run -d -p 9090:8080 --name springboot-app ${DOCKER_IMAGE}"
             }
         }
     }
