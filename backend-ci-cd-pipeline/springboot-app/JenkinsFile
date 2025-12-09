@@ -18,13 +18,12 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main',
-                    url: "https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git",
-                    credentialsId: "${GIT_CREDENTIAL}"
-            }
-        }
+        stage('Checkout') {
+      steps {
+        sh 'echo passed'
+        //git branch: 'main', url: 'https://github.com/dipeshkumar47/INT331_CI-CD_Project.git'
+      }
+    }
 
         stage('SonarQube Analysis') {
             steps {
