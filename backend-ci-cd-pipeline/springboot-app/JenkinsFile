@@ -28,6 +28,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 // Inject the SonarQube token stored as secret text
+                dir('backend-ci-cd-pipeline/springboot-app')
                 withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
                     withSonarQubeEnv("${SONARQUBE_ENV}") {
                         sh """
