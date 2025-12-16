@@ -87,7 +87,7 @@ pipeline {
                         docker pull ${DOCKER_USER}/${IMAGE_NAME}:latest
                         docker stop springboot-app || true
                         docker rm springboot-app || true
-                        docker run -d --name springboot-app -p 8080:8080 \
+                        docker run -d --name springboot-app -p 9090:9090 \
                         ${DOCKER_USER}/${IMAGE_NAME}:latest
                     '
                     """
