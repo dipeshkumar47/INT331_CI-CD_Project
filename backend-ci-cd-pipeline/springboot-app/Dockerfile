@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY target/devops-game.war app.war
 
-EXPOSE 8080
+EXPOSE 9090
 
 ENTRYPOINT ["java", "-jar", "app.war"]
