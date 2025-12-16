@@ -1,11 +1,9 @@
-FROM tomcat:10.1-jdk17-temurin
+FROM eclipse-temurin:17-jre-jammy
 
-# Remove default Tomcat apps
-RUN rm -rf /usr/local/tomcat/webapps/*
+WORKDIR /app
 
-# Copy WAR to Tomcat
-COPY target/devops-game.war /usr/local/tomcat/webapps/ROOT.war
+COPY target/devops-game.war app.war
 
 EXPOSE 8080
 
-CMD ["catalina.sh", "run"]
+ENTRYPOINT ["java", "-jar", "app.war"]
