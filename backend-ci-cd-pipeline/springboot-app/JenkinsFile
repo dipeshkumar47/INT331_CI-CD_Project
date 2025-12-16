@@ -13,7 +13,7 @@ pipeline {
         SONARQUBE_ENV     = "sonarqube"
         SONARQUBE_URL     = "http://localhost:9000"
 
-        EC2_HOST          = "54.226.186.77"   // ✅ your EC2 public IP
+        EC2_HOST          = "100.29.211.151"   // ✅ your EC2 Elastic IP
         EC2_USER          = "ubuntu"
         EC2_SSH_CRED      = "ec2-ssh-key"
     }
