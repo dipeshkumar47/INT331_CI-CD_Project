@@ -158,4 +158,101 @@ pipeline {
             }
         }
     }
+}pipeline {
+    agent any
+
+    environment {
+        GIT_USER_NAME     = "dipeshkumar47"
+        GIT_REPO_NAME     = "INT331_CI-CD_Project"
+        GIT_CREDENTIAL    = "github-token"
+
+        DOCKER_USER       = "dipeshkumar47"
+        IMAGE_NAME        = "springboot-app"
+        DOCKER_CREDENTIAL = "docker-cred"
+
+        SONARQUBE_ENV     = "sonarqube"
+        SONARQUBE_URL     = "http://localhost:9000"
+
+        EC2_HOST          = "54.226.186.77"   // ✅ your EC2 public IP
+        EC2_USER          = "ubuntu"
+        EC2_SSH_CRED      = "ec2-ssh-key"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: "https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git",
+                    credentialsId: "${GIT_CREDENTIAL}"
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend-ci-cd-pipeline/springboot-app') {
+                    withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                        withSonarQubeEnv("${SONARQUBE_ENV}") {
+                            sh """
+                                mvn clean verify sonar:sonar \
+                                -Dsonar.projectKey=springboot-app \
+                                -Dsonar.projectName=springboot-app \
+                                -Dsonar.host.url=${SONARQUBE_URL} \
+                                -Dsonar.login=$SONAR_AUTH_TOKEN
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Maven Artifact') {
+            steps {
+                dir('backend-ci-cd-pipeline/springboot-app') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend-ci-cd-pipeline/springboot-app') {
+                    sh """
+                        docker build -t ${DOCKER_USER}/${IMAGE_NAME}:latest .
+                    """
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIAL}",
+                    usernameVariable: 'DH_USER',
+                    passwordVariable: 'DH_PASS'
+                )]) {
+                    sh """
+                        echo $DH_PASS | docker login -u $DH_USER --password-stdin
+                        docker push ${DOCKER_USER}/${IMAGE_NAME}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(credentials: ["${EC2_SSH_CRED}"]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                        docker pull ${DOCKER_USER}/${IMAGE_NAME}:latest
+                        docker stop springboot-app || true
+                        docker rm springboot-app || true
+                        docker run -d --name springboot-app -p 8080:8080 \
+                        ${DOCKER_USER}/${IMAGE_NAME}:latest
+                    '
+                    """
+                }
+            }
+        }
+    }
 }
